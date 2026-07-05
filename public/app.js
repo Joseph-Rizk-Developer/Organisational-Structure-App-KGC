@@ -1,3 +1,5 @@
+import { createClient } from "@supabase/supabase-js";
+
 const departments = [
   { name: "Executive", color: "#255c99" },
   { name: "Operations", color: "#14866d" },
@@ -8,128 +10,26 @@ const departments = [
   { name: "Marketing", color: "#667085" },
 ];
 
-let employees = [
-  {
-    id: "ava",
-    firstName: "Ava",
-    lastName: "Morgan",
-    role: "Chief Executive Officer",
-    department: "Executive",
-    mobile: "+61 400 100 100",
-    email: "ava.morgan@example.com",
-    managerId: "",
-    isManager: true,
-    headOfDepartments: ["Executive", "Operations", "Finance"],
-  },
-  {
-    id: "liam",
-    firstName: "Liam",
-    lastName: "Chen",
-    role: "Head of Technology",
-    department: "Technology",
-    mobile: "+61 400 200 200",
-    email: "liam.chen@example.com",
-    managerId: "ava",
-    isManager: true,
-    headOfDepartments: ["Technology"],
-  },
-  {
-    id: "mia",
-    firstName: "Mia",
-    lastName: "Patel",
-    role: "Head of People",
-    department: "People",
-    mobile: "+61 400 300 300",
-    email: "mia.patel@example.com",
-    managerId: "ava",
-    isManager: true,
-    headOfDepartments: ["People"],
-  },
-  {
-    id: "noah",
-    firstName: "Noah",
-    lastName: "Rivera",
-    role: "Head of Revenue",
-    department: "Sales",
-    mobile: "+61 400 400 400",
-    email: "noah.rivera@example.com",
-    managerId: "ava",
-    isManager: true,
-    headOfDepartments: ["Sales", "Marketing"],
-  },
-  {
-    id: "sophia",
-    firstName: "Sophia",
-    lastName: "Nguyen",
-    role: "Product Engineer",
-    department: "Technology",
-    mobile: "+61 400 510 510",
-    email: "sophia.nguyen@example.com",
-    managerId: "liam",
-    isManager: false,
-    headOfDepartments: [],
-  },
-  {
-    id: "ethan",
-    firstName: "Ethan",
-    lastName: "Brown",
-    role: "Systems Analyst",
-    department: "Technology",
-    mobile: "+61 400 520 520",
-    email: "ethan.brown@example.com",
-    managerId: "liam",
-    isManager: false,
-    headOfDepartments: [],
-  },
-  {
-    id: "isla",
-    firstName: "Isla",
-    lastName: "Wilson",
-    role: "People Partner",
-    department: "People",
-    mobile: "+61 400 610 610",
-    email: "isla.wilson@example.com",
-    managerId: "mia",
-    isManager: false,
-    headOfDepartments: [],
-  },
-  {
-    id: "lucas",
-    firstName: "Lucas",
-    lastName: "Taylor",
-    role: "Account Executive",
-    department: "Sales",
-    mobile: "+61 400 710 710",
-    email: "lucas.taylor@example.com",
-    managerId: "noah",
-    isManager: false,
-    headOfDepartments: [],
-  },
-  {
-    id: "amelia",
-    firstName: "Amelia",
-    lastName: "Scott",
-    role: "Brand Lead",
-    department: "Marketing",
-    mobile: "+61 400 720 720",
-    email: "amelia.scott@example.com",
-    managerId: "noah",
-    isManager: false,
-    headOfDepartments: [],
-  },
-];
+const supabaseUrl = __SUPABASE_URL__;
+const supabasePublishableKey = __SUPABASE_PUBLISHABLE_KEY__;
+const isConfigured = Boolean(supabaseUrl && supabasePublishableKey);
+const supabase = isConfigured ? createClient(supabaseUrl, supabasePublishableKey) : null;
 
-const storageKey = "organisation-structure-employees";
-const savedEmployees = localStorage.getItem(storageKey);
-
-if (savedEmployees) {
-  employees = JSON.parse(savedEmployees);
-}
-
-let selectedEmployeeId = employees[0]?.id ?? "";
+let employees = [];
+let selectedEmployeeId = "";
 let activeDepartment = "All";
 let collapsedManagers = new Set();
+let currentUser = null;
+let isAdmin = false;
+let pendingAuthMessage = "";
 
+const authView = document.querySelector("#authView");
+const appShell = document.querySelector("#appShell");
+const signInForm = document.querySelector("#signInForm");
+const signInButton = document.querySelector("#signInButton");
+const authStatus = document.querySelector("#authStatus");
+const appStatus = document.querySelector("#appStatus");
+const accountRole = document.querySelector("#accountRole");
 const orgTree = document.querySelector("#orgTree");
 const profileDetails = document.querySelector("#profileDetails");
 const departmentFilters = document.querySelector("#departmentFilters");
@@ -145,6 +45,25 @@ const isManagerInput = document.querySelector("#isManager");
 const headOfDepartmentsField = document.querySelector("#headOfDepartmentsField");
 const headOfDepartmentOptions = document.querySelector("#headOfDepartmentOptions");
 
+const setStatus = (message = "") => {
+  appStatus.textContent = message;
+};
+
+const setAuthStatus = (message = "") => {
+  authStatus.textContent = message;
+};
+
+const setBusy = (button, busy, busyLabel) => {
+  if (!button) return;
+  if (busy) {
+    button.dataset.label = button.textContent;
+    button.textContent = busyLabel;
+  } else if (button.dataset.label) {
+    button.textContent = button.dataset.label;
+  }
+  button.disabled = busy;
+};
+
 const departmentColor = (department) =>
   departments.find((item) => item.name === department)?.color ?? "#667085";
 
@@ -156,11 +75,49 @@ const escapeHtml = (value) => {
   return element.innerHTML;
 };
 
-const makeEmployeeId = () =>
-  crypto.randomUUID?.() ?? `employee-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const fromDatabase = (row) => ({
+  id: row.id,
+  firstName: row.first_name,
+  lastName: row.last_name,
+  role: row.role,
+  department: row.department,
+  mobile: row.mobile ?? "",
+  email: row.email ?? "",
+  managerId: row.manager_id ?? "",
+  isManager: row.is_manager ?? false,
+  headOfDepartments: row.head_of_departments ?? [],
+});
 
-const saveEmployees = () => {
-  localStorage.setItem(storageKey, JSON.stringify(employees));
+const toDatabase = (employee) => ({
+  first_name: employee.firstName,
+  last_name: employee.lastName,
+  role: employee.role,
+  department: employee.department,
+  mobile: employee.mobile,
+  email: employee.email,
+  manager_id: employee.managerId || null,
+  is_manager: employee.isManager,
+  head_of_departments: employee.headOfDepartments,
+});
+
+const loadEmployees = async () => {
+  setStatus("Loading directory...");
+  const { data, error } = await supabase
+    .from("employees")
+    .select(
+      "id, first_name, last_name, role, department, mobile, email, manager_id, is_manager, head_of_departments",
+    )
+    .order("last_name")
+    .order("first_name");
+
+  if (error) throw error;
+
+  employees = data.map(fromDatabase);
+  if (!employees.some((employee) => employee.id === selectedEmployeeId)) {
+    selectedEmployeeId = employees[0]?.id ?? "";
+  }
+  setStatus("");
+  render();
 };
 
 const matchesFilters = (employee) => {
@@ -307,7 +264,11 @@ const renderProfile = () => {
         : ""
     }
     <div class="profile-actions">
-      <button class="secondary-button" type="button" data-edit-id="${employee.id}">Edit</button>
+      ${
+        isAdmin
+          ? `<button class="secondary-button" type="button" data-edit-id="${employee.id}">Edit</button>`
+          : ""
+      }
       ${
         employees.some((candidate) => candidate.managerId === employee.id)
           ? `<button class="secondary-button" type="button" data-collapse-id="${employee.id}">
@@ -330,6 +291,12 @@ const renderProfile = () => {
 };
 
 const render = () => {
+  document.querySelectorAll(".admin-only").forEach((element) => {
+    element.hidden = !isAdmin;
+  });
+  accountRole.textContent = currentUser
+    ? `${currentUser.email} · ${isAdmin ? "Administrator" : "Viewer"}`
+    : "";
   renderDepartments();
   renderTree();
   renderProfile();
@@ -365,6 +332,8 @@ const updateHeadOfDepartmentVisibility = () => {
 };
 
 const openDialog = (employeeId = "") => {
+  if (!isAdmin) return;
+
   const employee = employees.find((item) => item.id === employeeId);
   populateFormOptions(employeeId);
 
@@ -396,15 +365,16 @@ const closeDialog = () => {
   employeeDialog.close();
 };
 
-employeeForm.addEventListener("submit", (event) => {
+employeeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (!isAdmin) return;
 
   const formData = new FormData(employeeForm);
-  const id = document.querySelector("#employeeId").value || makeEmployeeId();
+  const id = document.querySelector("#employeeId").value;
   const isManager = formData.get("isManager") === "on";
   const headOfDepartments = isManager ? formData.getAll("headOfDepartments") : [];
   const employee = {
-    id,
+    id: id || undefined,
     firstName: formData.get("firstName").trim(),
     lastName: formData.get("lastName").trim(),
     role: formData.get("role").trim(),
@@ -416,41 +386,79 @@ employeeForm.addEventListener("submit", (event) => {
     headOfDepartments,
   };
 
-  employees = employees.some((item) => item.id === id)
-    ? employees.map((item) => (item.id === id ? employee : item))
-    : [...employees, employee];
+  const saveButton = document.querySelector("#saveEmployeeButton");
+  setBusy(saveButton, true, "Saving...");
+  setStatus("");
 
-  if (!isManager) {
-    employees = employees.map((item) =>
-      item.managerId === id ? { ...item, managerId: employee.managerId } : item,
-    );
+  try {
+    if (id) {
+      const { error } = await supabase.from("employees").update(toDatabase(employee)).eq("id", id);
+      if (error) throw error;
+
+      if (!isManager) {
+        const { error: reportsError } = await supabase
+          .from("employees")
+          .update({ manager_id: employee.managerId || null })
+          .eq("manager_id", id);
+        if (reportsError) throw reportsError;
+      }
+      selectedEmployeeId = id;
+    } else {
+      const { data, error } = await supabase
+        .from("employees")
+        .insert(toDatabase(employee))
+        .select("id")
+        .single();
+      if (error) throw error;
+      selectedEmployeeId = data.id;
+    }
+
+    closeDialog();
+    await loadEmployees();
+  } catch (error) {
+    setStatus(error.message || "Unable to save employee.");
+  } finally {
+    setBusy(saveButton, false);
   }
-
-  selectedEmployeeId = id;
-  saveEmployees();
-  closeDialog();
-  render();
 });
 
-deleteEmployeeButton.addEventListener("click", () => {
+deleteEmployeeButton.addEventListener("click", async () => {
+  if (!isAdmin) return;
+
   const employeeId = document.querySelector("#employeeId").value;
   const employee = employees.find((item) => item.id === employeeId);
   if (!employee) return;
 
-  employees = employees
-    .filter((item) => item.id !== employeeId)
-    .map((item) => (item.managerId === employeeId ? { ...item, managerId: employee.managerId } : item));
+  setBusy(deleteEmployeeButton, true, "Deleting...");
+  setStatus("");
 
-  selectedEmployeeId = employees[0]?.id ?? "";
-  saveEmployees();
-  closeDialog();
-  render();
+  try {
+    const { error: reportsError } = await supabase
+      .from("employees")
+      .update({ manager_id: employee.managerId || null })
+      .eq("manager_id", employeeId);
+    if (reportsError) throw reportsError;
+
+    const { error } = await supabase.from("employees").delete().eq("id", employeeId);
+    if (error) throw error;
+
+    selectedEmployeeId = "";
+    closeDialog();
+    await loadEmployees();
+  } catch (error) {
+    setStatus(error.message || "Unable to delete employee.");
+  } finally {
+    setBusy(deleteEmployeeButton, false);
+  }
 });
 
 isManagerInput.addEventListener("change", updateHeadOfDepartmentVisibility);
 searchInput.addEventListener("input", render);
 
 document.querySelector("#addEmployeeButton").addEventListener("click", () => openDialog());
+document.querySelector("#signOutButton").addEventListener("click", async () => {
+  await supabase.auth.signOut();
+});
 document.querySelector("#closeDialogButton").addEventListener("click", closeDialog);
 document.querySelector("#cancelDialogButton").addEventListener("click", closeDialog);
 document.querySelector("#expandAllButton").addEventListener("click", () => {
@@ -466,4 +474,82 @@ document.querySelector("#collapseAllButton").addEventListener("click", () => {
   render();
 });
 
-render();
+signInForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!supabase) return;
+
+  const formData = new FormData(signInForm);
+  setAuthStatus("");
+  setBusy(signInButton, true, "Signing in...");
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: formData.get("email").trim(),
+    password: formData.get("password"),
+  });
+
+  if (error) {
+    setAuthStatus(error.message);
+    setBusy(signInButton, false);
+  }
+});
+
+const loadCurrentUser = async (session) => {
+  currentUser = session?.user ?? null;
+  isAdmin = false;
+  employees = [];
+  selectedEmployeeId = "";
+
+  if (!currentUser) {
+    appShell.hidden = true;
+    authView.hidden = false;
+    signInForm.reset();
+    setAuthStatus(pendingAuthMessage);
+    pendingAuthMessage = "";
+    setBusy(signInButton, false);
+    return;
+  }
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", currentUser.id)
+    .single();
+
+  if (error) {
+    pendingAuthMessage = "Your account does not have directory access.";
+    await supabase.auth.signOut();
+    return;
+  }
+
+  isAdmin = profile.role === "admin";
+  authView.hidden = true;
+  appShell.hidden = false;
+  setBusy(signInButton, false);
+
+  try {
+    await loadEmployees();
+  } catch (loadError) {
+    setStatus(loadError.message || "Unable to load the directory.");
+    render();
+  }
+};
+
+const initialise = async () => {
+  if (!isConfigured) {
+    setAuthStatus("Supabase is not configured for this deployment.");
+    signInButton.disabled = true;
+    return;
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  await loadCurrentUser(session);
+
+  supabase.auth.onAuthStateChange((event, nextSession) => {
+    if (event === "INITIAL_SESSION") return;
+    setTimeout(() => loadCurrentUser(nextSession), 0);
+  });
+};
+
+initialise();

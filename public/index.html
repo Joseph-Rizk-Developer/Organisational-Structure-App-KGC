@@ -7,14 +7,33 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+    <section id="authView" class="auth-view">
+      <form id="signInForm" class="auth-panel">
+        <div>
+          <p class="eyebrow">Company Directory</p>
+          <h1>Organisation Structure</h1>
+        </div>
+        <label>
+          Email address
+          <input id="signInEmail" name="email" type="email" required autocomplete="email" />
+        </label>
+        <label>
+          Password
+          <input id="signInPassword" name="password" type="password" required autocomplete="current-password" />
+        </label>
+        <p id="authStatus" class="form-status" role="status"></p>
+        <button id="signInButton" class="primary-button" type="submit">Sign in</button>
+      </form>
+    </section>
+
+    <div id="appShell" class="app-shell" hidden>
       <aside class="sidebar">
         <div class="brand-row">
           <div>
             <p class="eyebrow">Company Directory</p>
             <h1>Organisation Structure</h1>
           </div>
-          <button id="addEmployeeButton" class="icon-button" type="button" aria-label="Add employee" title="Add employee">+</button>
+          <button id="addEmployeeButton" class="icon-button admin-only" type="button" aria-label="Add employee" title="Add employee">+</button>
         </div>
 
         <label class="search-field" for="searchInput">
@@ -40,12 +59,15 @@
             <h2 id="treeTitle">All Employees</h2>
           </div>
           <div class="toolbar-actions">
+            <span id="accountRole" class="account-role"></span>
             <button id="expandAllButton" class="secondary-button" type="button">Expand all</button>
             <button id="collapseAllButton" class="secondary-button" type="button">Collapse all</button>
+            <button id="signOutButton" class="secondary-button" type="button">Sign out</button>
           </div>
         </div>
 
         <div class="tree-viewport" aria-live="polite">
+          <p id="appStatus" class="app-status" role="status"></p>
           <div id="orgTree" class="org-tree"></div>
         </div>
       </main>
