@@ -1,4 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
+import {
+  buildHierarchy,
+  fromDatabase,
+  normaliseId,
+  toDatabase,
+} from "./employee-data.js";
 
 const departments = [
   { name: "Executive", color: "#255c99" },
@@ -71,34 +77,9 @@ const fullName = (employee) => `${employee.firstName} ${employee.lastName}`;
 
 const escapeHtml = (value) => {
   const element = document.createElement("span");
-  element.textContent = value;
+  element.textContent = value ?? "";
   return element.innerHTML;
 };
-
-const fromDatabase = (row) => ({
-  id: row.id,
-  firstName: row.first_name,
-  lastName: row.last_name,
-  role: row.role,
-  department: row.department,
-  mobile: row.mobile ?? "",
-  email: row.email ?? "",
-  managerId: row.manager_id ?? "",
-  isManager: row.is_manager ?? false,
-  headOfDepartments: row.head_of_departments ?? [],
-});
-
-const toDatabase = (employee) => ({
-  first_name: employee.firstName,
-  last_name: employee.lastName,
-  role: employee.role,
-  department: employee.department,
-  mobile: employee.mobile,
-  email: employee.email,
-  manager_id: employee.managerId || null,
-  is_manager: employee.isManager,
-  head_of_departments: employee.headOfDepartments,
-});
 
 const loadEmployees = async () => {
   setStatus("Loading directory...");
@@ -151,12 +132,11 @@ const visibleInBranch = (employee) => {
   );
 };
 
-const buildTreeNode = (employee) => {
+const buildTreeNode = (employee, childrenByManagerId) => {
   const li = document.createElement("li");
   const card = document.createElement("button");
   const color = departmentColor(employee.department);
-  const children = employees
-    .filter((candidate) => candidate.managerId === employee.id)
+  const children = (childrenByManagerId.get(normaliseId(employee.id)) ?? [])
     .filter(visibleInBranch)
     .sort((a, b) => fullName(a).localeCompare(fullName(b)));
 
@@ -178,13 +158,16 @@ const buildTreeNode = (employee) => {
   card.addEventListener("click", () => {
     selectedEmployeeId = employee.id;
     render();
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      profileDetails.closest(".panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   });
 
   li.append(card);
 
   if (children.length && !collapsedManagers.has(employee.id)) {
     const ul = document.createElement("ul");
-    children.forEach((child) => ul.append(buildTreeNode(child)));
+    children.forEach((child) => ul.append(buildTreeNode(child, childrenByManagerId)));
     li.append(ul);
   }
 
@@ -194,8 +177,8 @@ const buildTreeNode = (employee) => {
 const renderTree = () => {
   orgTree.innerHTML = "";
 
-  const roots = employees
-    .filter((employee) => !employee.managerId || !employees.some((item) => item.id === employee.managerId))
+  const { childrenByManagerId, roots: allRoots } = buildHierarchy(employees);
+  const roots = allRoots
     .filter(visibleInBranch)
     .sort((a, b) => fullName(a).localeCompare(fullName(b)));
 
@@ -209,7 +192,7 @@ const renderTree = () => {
   }
 
   const ul = document.createElement("ul");
-  roots.forEach((employee) => ul.append(buildTreeNode(employee)));
+  roots.forEach((employee) => ul.append(buildTreeNode(employee, childrenByManagerId)));
   orgTree.append(ul);
 };
 
