@@ -51,14 +51,14 @@ function DetailRow({
 }) {
   return (
     <HStack alignItems="flex-start" gap="3">
-      <Box color="gray.500" marginTop="0.5">
+      <Box color="gray.700" marginTop="0.5">
         {icon}
       </Box>
       <Box minWidth="0">
-        <Text color="gray.500" fontSize="xs" fontWeight="700" textTransform="uppercase">
+        <Text color="gray.700" fontSize="xs" fontWeight="800" textTransform="uppercase">
           {label}
         </Text>
-        <Box color="gray.800" fontSize="sm" overflowWrap="anywhere">
+        <Box color="gray.950" fontSize="sm" fontWeight="600" overflowWrap="anywhere">
           {children}
         </Box>
       </Box>
@@ -82,7 +82,15 @@ export function ProfileDialog({
       <Portal>
         <Dialog.Backdrop background="blackAlpha.500" />
         <Dialog.Positioner>
-          <Dialog.Content width="min(460px, calc(100vw - 24px))" borderRadius="8px">
+          <Dialog.Content
+            width="min(460px, calc(100vw - 24px))"
+            borderRadius="8px"
+            background="white"
+            color="gray.950"
+            borderWidth="1px"
+            borderColor="gray.200"
+            boxShadow="2xl"
+          >
             {employee ? (
               <>
                 <Dialog.Header alignItems="flex-start">
@@ -101,29 +109,48 @@ export function ProfileDialog({
                         </Badge>
                       ) : null}
                     </HStack>
-                    <Dialog.Title fontSize="xl">{fullName(employee)}</Dialog.Title>
-                    <Text color="gray.600" fontSize="sm">
+                    <Dialog.Title color="gray.950" fontSize="xl" fontWeight="800">
+                      {fullName(employee)}
+                    </Dialog.Title>
+                    <Text color="gray.700" fontSize="sm" fontWeight="600">
                       {employee.role}
                     </Text>
                   </Stack>
-                  <IconButton type="button" variant="ghost" aria-label="Close profile" onClick={onClose}>
+                  <IconButton
+                    type="button"
+                    variant="ghost"
+                    color="gray.800"
+                    aria-label="Close profile"
+                    onClick={onClose}
+                    _hover={{ background: "gray.100", color: "gray.950" }}
+                  >
                     <X size={18} />
                   </IconButton>
                 </Dialog.Header>
 
                 <Dialog.Body>
-                  <Separator marginBottom="5" />
+                  <Separator borderColor="gray.300" marginBottom="5" />
                   <Stack gap="4">
                     <DetailRow icon={<UserRound size={17} />} label="Manager">
                       {manager ? fullName(manager) : "Top level"}
                     </DetailRow>
                     <DetailRow icon={<Phone size={17} />} label="Mobile">
-                      <Link href={`tel:${employee.mobile}`} color="blue.700">
+                      <Link
+                        href={`tel:${employee.mobile}`}
+                        color="blue.800"
+                        fontWeight="700"
+                        textDecoration="underline"
+                      >
                         {employee.mobile}
                       </Link>
                     </DetailRow>
                     <DetailRow icon={<Mail size={17} />} label="Email">
-                      <Link href={`mailto:${employee.email}`} color="blue.700">
+                      <Link
+                        href={`mailto:${employee.email}`}
+                        color="blue.800"
+                        fontWeight="700"
+                        textDecoration="underline"
+                      >
                         {employee.email}
                       </Link>
                     </DetailRow>
@@ -132,7 +159,14 @@ export function ProfileDialog({
                         <HStack flexWrap="wrap" marginTop="1">
                           {employee.headOfDepartments.length > 0 ? (
                             employee.headOfDepartments.map((department) => (
-                              <Badge key={department} variant="outline" borderRadius="4px">
+                              <Badge
+                                key={department}
+                                variant="outline"
+                                borderRadius="4px"
+                                background="gray.50"
+                                borderColor="gray.300"
+                                color="gray.800"
+                              >
                                 {department}
                               </Badge>
                             ))
@@ -151,7 +185,10 @@ export function ProfileDialog({
                       <Button
                         type="button"
                         variant="outline"
+                        color="gray.800"
+                        borderColor="gray.300"
                         onClick={() => onToggleReports(employee.id)}
+                        _hover={{ background: "gray.100", color: "gray.950" }}
                       >
                         {reportsCollapsed ? <Eye size={16} /> : <EyeOff size={16} />}
                         {reportsCollapsed ? "Show reports" : "Hide reports"}

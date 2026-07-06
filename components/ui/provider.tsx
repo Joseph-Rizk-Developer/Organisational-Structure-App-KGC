@@ -7,7 +7,12 @@ import type { ReactNode } from "react";
 export function Provider({ children }: { children: ReactNode }) {
   return (
     <ChakraProvider value={defaultSystem}>
-      <ThemeProvider attribute="class" disableTransitionOnChange>
+      <ThemeProvider
+        attribute="class"
+        forcedTheme="light"
+        enableSystem={false}
+        disableTransitionOnChange
+      >
         {children}
       </ThemeProvider>
     </ChakraProvider>
