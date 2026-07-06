@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildHierarchy,
   descendantsOf,
+  filterHierarchy,
   fromDatabase,
   normaliseDepartments,
 } from "../lib/employee-data";
@@ -93,4 +94,42 @@ test("finds descendants so an employee cannot report to their own branch", () =>
   ];
 
   assert.deepEqual(descendantsOf(employees, "1"), ["2", "3"]);
+});
+
+test("keeps every sibling branch visible when all departments are selected", () => {
+  const employees = [
+    {
+      id: "root",
+      firstName: "Root",
+      lastName: "Manager",
+      role: "Director",
+      department: "Executive",
+      mobile: "",
+      email: "",
+      managerId: "",
+      isManager: true,
+      headOfDepartments: [],
+    },
+    ...["one", "two", "three"].map((id) => ({
+      id,
+      firstName: id,
+      lastName: "Employee",
+      role: "Employee",
+      department: "Technology",
+      mobile: "",
+      email: "",
+      managerId: "root",
+      isManager: false,
+      headOfDepartments: [],
+    })),
+  ];
+
+  const filtered = filterHierarchy(employees, () => true);
+
+  assert.deepEqual(filtered.roots.map((employee) => employee.id), ["root"]);
+  assert.deepEqual(
+    filtered.childrenByManagerId.get("root")?.map((employee) => employee.id),
+    ["one", "two", "three"],
+  );
+  assert.equal(filtered.matchingCount, 4);
 });

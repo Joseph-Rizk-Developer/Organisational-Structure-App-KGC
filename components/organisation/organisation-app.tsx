@@ -33,7 +33,7 @@ import { OrgTree } from "@/components/organisation/org-tree";
 import { ProfileDialog } from "@/components/organisation/profile-dialog";
 import { departmentColor, departments } from "@/lib/departments";
 import {
-  buildHierarchy,
+  filterHierarchy,
   fromDatabase,
   fullName,
   toDatabase,
@@ -178,8 +178,6 @@ export function OrganisationApp({
     };
   }, [hydrateSession, supabase]);
 
-  const hierarchy = useMemo(() => buildHierarchy(employees), [employees]);
-
   const filteredHierarchy = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const matches = (employee: Employee) => {
@@ -197,32 +195,8 @@ export function OrganisationApp({
       return inDepartment && (!query || searchText.includes(query));
     };
 
-    const visibleIds = new Set<string>();
-    const isVisibleBranch = (employee: Employee): boolean => {
-      const childVisible = (hierarchy.childrenByManagerId.get(employee.id) ?? []).some(
-        isVisibleBranch,
-      );
-      const visible = matches(employee) || childVisible;
-      if (visible) visibleIds.add(employee.id);
-      return visible;
-    };
-
-    const roots = hierarchy.roots.filter(isVisibleBranch);
-    const childrenByManagerId = new Map<string, Employee[]>();
-
-    hierarchy.childrenByManagerId.forEach((children, managerId) => {
-      childrenByManagerId.set(
-        managerId,
-        children.filter((employee) => visibleIds.has(employee.id)),
-      );
-    });
-
-    return {
-      roots,
-      childrenByManagerId,
-      matchingCount: employees.filter(matches).length,
-    };
-  }, [activeDepartment, employees, hierarchy, searchQuery]);
+    return filterHierarchy(employees, matches);
+  }, [activeDepartment, employees, searchQuery]);
 
   const openProfile = (employee: Employee) => {
     setSelectedEmployeeId(employee.id);
@@ -324,6 +298,14 @@ export function OrganisationApp({
       else next.add(employeeId);
       return next;
     });
+  };
+
+  const selectDepartment = (department: string) => {
+    setActiveDepartment(department);
+    if (department === "All") {
+      setSearchQuery("");
+      setCollapsedManagers(new Set());
+    }
   };
 
   const signIn = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -510,7 +492,7 @@ export function OrganisationApp({
                         borderColor={active ? color : "gray.200"}
                         color={active ? "white" : "gray.700"}
                         borderRadius="6px"
-                        onClick={() => setActiveDepartment(department)}
+                        onClick={() => selectDepartment(department)}
                         _hover={{ background: active ? color : "gray.50" }}
                       >
                         {department}
@@ -584,7 +566,10 @@ export function OrganisationApp({
                 type="button"
                 variant="outline"
                 size="sm"
+                color="gray.800"
+                borderColor="gray.300"
                 onClick={() => setCollapsedManagers(new Set())}
+                _hover={{ background: "gray.100", color: "gray.950" }}
               >
                 <ChevronDown size={16} />
                 Expand all
@@ -593,6 +578,8 @@ export function OrganisationApp({
                 type="button"
                 variant="outline"
                 size="sm"
+                color="gray.800"
+                borderColor="gray.300"
                 onClick={() =>
                   setCollapsedManagers(
                     new Set(
@@ -604,6 +591,7 @@ export function OrganisationApp({
                     ),
                   )
                 }
+                _hover={{ background: "gray.100", color: "gray.950" }}
               >
                 <ChevronUp size={16} />
                 Collapse all

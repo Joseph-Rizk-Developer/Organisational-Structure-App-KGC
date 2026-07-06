@@ -78,6 +78,39 @@ export const buildHierarchy = (employees: Employee[]) => {
   return { childrenByManagerId, roots };
 };
 
+export const filterHierarchy = (
+  employees: Employee[],
+  matches: (employee: Employee) => boolean,
+) => {
+  const hierarchy = buildHierarchy(employees);
+  const visibleIds = new Set<string>();
+
+  const isVisibleBranch = (employee: Employee): boolean => {
+    const childResults = (hierarchy.childrenByManagerId.get(employee.id) ?? []).map(
+      isVisibleBranch,
+    );
+    const visible = matches(employee) || childResults.some(Boolean);
+    if (visible) visibleIds.add(employee.id);
+    return visible;
+  };
+
+  const roots = hierarchy.roots.filter(isVisibleBranch);
+  const childrenByManagerId = new Map<string, Employee[]>();
+
+  hierarchy.childrenByManagerId.forEach((children, managerId) => {
+    childrenByManagerId.set(
+      managerId,
+      children.filter((employee) => visibleIds.has(employee.id)),
+    );
+  });
+
+  return {
+    roots,
+    childrenByManagerId,
+    matchingCount: employees.filter(matches).length,
+  };
+};
+
 export const descendantsOf = (employees: Employee[], managerId: string): string[] => {
   const directReports = employees.filter((employee) => employee.managerId === managerId);
   return directReports.flatMap((employee) => [
