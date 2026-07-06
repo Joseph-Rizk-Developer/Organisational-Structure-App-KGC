@@ -90,10 +90,11 @@ export function ProfileDialog({
             borderWidth="1px"
             borderColor="gray.200"
             boxShadow="2xl"
+            position="relative"
           >
             {employee ? (
               <>
-                <Dialog.Header alignItems="flex-start">
+                <Dialog.Header alignItems="flex-start" paddingRight="16">
                   <Stack gap="2">
                     <Badge
                       alignSelf="flex-start"
@@ -123,6 +124,10 @@ export function ProfileDialog({
                     color="gray.800"
                     aria-label="Close profile"
                     onClick={onClose}
+                    position="absolute"
+                    top="3"
+                    right="3"
+                    zIndex="1"
                     _hover={{ background: "gray.100", color: "gray.950" }}
                   >
                     <X size={18} />
