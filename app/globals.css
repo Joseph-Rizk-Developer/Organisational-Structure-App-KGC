@@ -27,6 +27,8 @@ select {
 }
 
 .org-tree {
+  --org-tree-line-color: #66736b;
+
   display: flex;
   min-width: max-content;
   justify-content: center;
@@ -57,7 +59,7 @@ select {
   top: -20px;
   width: 50%;
   height: 20px;
-  border-top: 2px solid #cdd6d0;
+  border-top: 2px solid var(--org-tree-line-color);
 }
 
 .org-tree-node::before {
@@ -66,7 +68,7 @@ select {
 
 .org-tree-node::after {
   left: 50%;
-  border-left: 2px solid #cdd6d0;
+  border-left: 2px solid var(--org-tree-line-color);
 }
 
 .org-tree-node:only-child::before,
@@ -82,10 +84,10 @@ select {
 .org-tree-list .org-tree-list::before {
   content: "";
   position: absolute;
-  top: 18px;
+  top: 0;
   left: 50%;
   height: 20px;
-  border-left: 2px solid #cdd6d0;
+  border-left: 2px solid var(--org-tree-line-color);
 }
 
 @media (max-width: 900px) {
