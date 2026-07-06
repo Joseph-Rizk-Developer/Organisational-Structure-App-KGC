@@ -1,6 +1,6 @@
 # Organisational Structure App
 
-A Supabase-backed company directory with authenticated viewing and administrator-only editing.
+A Next.js and Chakra UI company directory backed by Supabase, with authenticated viewing and administrator-only editing.
 
 ## Supabase setup
 
@@ -28,4 +28,12 @@ Copy `.env.example` to `.env.local`, enter the project URL and publishable key, 
 ```powershell
 npm install
 npm run dev
+```
+
+The application uses the Next.js App Router and TypeScript throughout. Run checks with:
+
+```powershell
+npm test
+npm run typecheck
+npm run build
 ```
