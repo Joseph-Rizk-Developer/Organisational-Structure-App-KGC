@@ -38,7 +38,7 @@ select {
   position: relative;
   display: flex;
   justify-content: center;
-  gap: 18px;
+  gap: 0;
   margin: 0;
   padding: 38px 0 0;
   list-style: none;
@@ -49,7 +49,12 @@ select {
   display: grid;
   justify-items: center;
   align-content: start;
-  padding: 0 6px;
+  padding: 0 15px;
+}
+
+.org-tree-node > button {
+  position: relative;
+  z-index: 1;
 }
 
 .org-tree-node::before,
@@ -60,6 +65,7 @@ select {
   width: 50%;
   height: 20px;
   border-top: 2px solid var(--org-tree-line-color);
+  pointer-events: none;
 }
 
 .org-tree-node::before {
@@ -71,9 +77,13 @@ select {
   border-left: 2px solid var(--org-tree-line-color);
 }
 
-.org-tree-node:only-child::before,
-.org-tree-node:only-child::after {
+.org-tree-node:only-child::before {
   display: none;
+}
+
+.org-tree-node:only-child::after {
+  width: 0;
+  border-top: 0;
 }
 
 .org-tree-node:first-child::before,
@@ -84,10 +94,20 @@ select {
 .org-tree-list .org-tree-list::before {
   content: "";
   position: absolute;
-  top: 0;
+  top: -3px;
   left: 50%;
-  height: 20px;
+  height: 23px;
   border-left: 2px solid var(--org-tree-line-color);
+  pointer-events: none;
+}
+
+.org-tree > .org-tree-list {
+  padding-top: 0;
+}
+
+.org-tree > .org-tree-list > .org-tree-node::before,
+.org-tree > .org-tree-list > .org-tree-node::after {
+  display: none;
 }
 
 @media (max-width: 900px) {
