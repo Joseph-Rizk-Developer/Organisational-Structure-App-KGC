@@ -95,23 +95,24 @@ export function ProfileDialog({
               <>
                 <Dialog.Header alignItems="flex-start">
                   <Stack gap="2">
-                    <HStack>
-                      <Badge
-                        background={`${departmentColor(employee.department)}1A`}
-                        color={departmentColor(employee.department)}
-                        borderRadius="4px"
-                      >
-                        {employee.department}
-                      </Badge>
+                    <Badge
+                      alignSelf="flex-start"
+                      background={`${departmentColor(employee.department)}1A`}
+                      color={departmentColor(employee.department)}
+                      borderRadius="4px"
+                    >
+                      {employee.department}
+                    </Badge>
+                    <HStack alignItems="center" gap="2" flexWrap="wrap">
+                      <Dialog.Title color="gray.950" fontSize="xl" fontWeight="800">
+                        {fullName(employee)}
+                      </Dialog.Title>
                       {employee.isManager ? (
                         <Badge colorPalette="green" variant="subtle" borderRadius="4px">
                           Manager
                         </Badge>
                       ) : null}
                     </HStack>
-                    <Dialog.Title color="gray.950" fontSize="xl" fontWeight="800">
-                      {fullName(employee)}
-                    </Dialog.Title>
                     <Text color="gray.700" fontSize="sm" fontWeight="600">
                       {employee.role}
                     </Text>
